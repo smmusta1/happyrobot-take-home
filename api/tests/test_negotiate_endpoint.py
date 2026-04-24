@@ -223,6 +223,38 @@ def test_400_on_non_positive_offer(client, db_session):
     assert "greater than zero" in body["body"]["error"]
 
 
+def test_offers_linked_to_completed_call_do_not_count(client, db_session):
+    """Offers already tied to a completed Call (via call_id) should not
+    inflate the round counter — the call is over, next negotiation is a new session.
+    """
+    _seed(db_session)
+    # Simulate 2 prior offers from a completed call (call_id is set)
+    for i, price in enumerate([Decimal("1100"), Decimal("1125")], start=1):
+        db_session.add(
+            Offer(
+                mc_number="42",
+                load_reference_number="L1",
+                round_number=i,
+                carrier_offer=price,
+                agent_counter=price,
+                decision="counter",
+                notes=None,
+                call_id=999,  # already linked to a completed call
+            )
+        )
+    db_session.commit()
+
+    # A new negotiation starts — should be round 1 despite the prior offers
+    r = client.post(
+        "/api/v1/negotiate",
+        headers=AUTH,
+        json={"load_id": "L1", "mc_number": "42", "carrier_offer": 1100.00},
+    )
+    body = r.json()
+    assert body["round_number"] == 1
+    assert body["rounds_remaining"] == 2
+
+
 def test_stale_offers_do_not_count_toward_round(client, db_session):
     """Offers older than ROUND_RESET_WINDOW (30 min) should not inflate the round counter.
 

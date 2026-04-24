@@ -16,9 +16,13 @@ router = APIRouter(
     dependencies=[Depends(verify_api_key)],
 )
 
-# Offers older than this don't count toward the current call's round number.
-# Keeps round state scoped to a single conversation so a second carrier call
-# days later starts fresh at round 1 instead of inheriting old history.
+# Round counting for an ongoing call uses only offers that are:
+#   1. Not yet linked to a completed Call (call_id IS NULL), AND
+#   2. Created within the last 30 minutes (safety net in case /calls/log doesn't fire)
+# The call_id filter is the precise mechanism: /calls/log links all offers
+# for that (mc, load) to the new Call, which excludes them from future round counts.
+# The time window is a fallback so stale unlinked offers from aborted calls
+# don't poison a fresh conversation.
 ROUND_RESET_WINDOW = timedelta(minutes=30)
 
 
@@ -53,6 +57,7 @@ def negotiate(body: NegotiateRequest, db: Session = Depends(get_db)) -> Negotiat
             Offer.mc_number == body.mc_number,
             Offer.load_reference_number == body.load_id,
             Offer.carrier_offer == body.carrier_offer,
+            Offer.call_id.is_(None),
             Offer.created_at > window_start,
         )
         .first()
@@ -71,6 +76,7 @@ def negotiate(body: NegotiateRequest, db: Session = Depends(get_db)) -> Negotiat
         .filter(
             Offer.mc_number == body.mc_number,
             Offer.load_reference_number == body.load_id,
+            Offer.call_id.is_(None),
             Offer.created_at > window_start,
         )
         .order_by(Offer.id.asc())
