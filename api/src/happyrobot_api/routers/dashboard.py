@@ -113,6 +113,17 @@ def list_calls(
     return CallListResponse(calls=[_to_item(c) for c in rows], total=total)
 
 
+@router.delete("/calls/{call_id}", status_code=204)
+def delete_call(call_id: int, db: Session = Depends(get_db)) -> None:
+    """Delete a Call row and cascade to its offers. Primarily for cleaning
+    up test-noise rows from the dashboard without shelling into Railway."""
+    call = db.query(Call).filter(Call.id == call_id).one_or_none()
+    if call is None:
+        raise HTTPException(status_code=404, detail=f"Call {call_id} not found")
+    db.delete(call)
+    db.commit()
+
+
 @router.get("/calls/{call_id}", response_model=CallDetail)
 def get_call(call_id: int, db: Session = Depends(get_db)) -> CallDetail:
     call = db.query(Call).filter(Call.id == call_id).one_or_none()

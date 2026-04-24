@@ -150,6 +150,37 @@ def test_get_call_404(client):
     assert r.json()["statusCode"] == 404
 
 
+def test_delete_call_cascades_offers(client, db_session):
+    call = _make_call(db_session)
+    db_session.add(
+        Offer(
+            call_id=call.id,
+            mc_number="123",
+            load_reference_number="HR-1001",
+            round_number=1,
+            carrier_offer=Decimal("2000"),
+            agent_counter=Decimal("2000"),
+            decision="accept",
+            notes=None,
+        )
+    )
+    db_session.commit()
+
+    assert db_session.query(Call).count() == 1
+    assert db_session.query(Offer).count() == 1
+
+    r = client.delete(f"/api/v1/calls/{call.id}", headers=AUTH)
+    assert r.status_code == 204
+    assert db_session.query(Call).count() == 0
+    # cascade should take the offer with it
+    assert db_session.query(Offer).count() == 0
+
+
+def test_delete_call_404_if_missing(client):
+    r = client.delete("/api/v1/calls/99999", headers=AUTH)
+    assert r.status_code == 404
+
+
 def test_calls_today_scoped_to_utc_midnight(client, db_session):
     # Create a call timestamped yesterday; should not count in calls_today
     now = datetime.now(UTC).replace(tzinfo=None)
