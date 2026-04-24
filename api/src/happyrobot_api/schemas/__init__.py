@@ -7,6 +7,13 @@ from happyrobot_api.schemas.carriers import (
     CarrierResponseBody,
 )
 from happyrobot_api.schemas.common import ErrorBody, ErrorResponse
+from happyrobot_api.schemas.dashboard import (
+    CallDetail,
+    CallListItem,
+    CallListResponse,
+    MetricsSummary,
+    OfferItem,
+)
 from happyrobot_api.schemas.loads import (
     Load,
     LoadBridge,
@@ -22,6 +29,9 @@ from happyrobot_api.schemas.negotiate import NegotiateRequest, NegotiateResponse
 from happyrobot_api.schemas.offers import LogOfferRequest, LogOfferResponse
 
 __all__ = [
+    "CallDetail",
+    "CallListItem",
+    "CallListResponse",
     "CallLogRequest",
     "CallLogResponse",
     "Carrier",
@@ -41,7 +51,9 @@ __all__ = [
     "Location",
     "LogOfferRequest",
     "LogOfferResponse",
+    "MetricsSummary",
     "NegotiateRequest",
     "NegotiateResponse",
+    "OfferItem",
     "Stop",
 ]

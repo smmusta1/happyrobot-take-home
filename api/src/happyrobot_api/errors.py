@@ -2,9 +2,11 @@
 
 Two shapes, by path:
 
-- Flat    `{status, error}`             — for POST write endpoints (/offers, /calls)
-- Nested  `{statusCode, body: {error}}` — for the Bridge GET endpoints (carriers, loads)
-  and other custom endpoints (/negotiate)
+- Flat    `{status, error}`             — for POST write endpoints that match
+                                          the Bridge spec's flat shape
+                                          (/offers/log, /calls/log)
+- Nested  `{statusCode, body: {error}}` — for GET endpoints (carriers, loads,
+                                          dashboard) and /negotiate
 
 Routes outside /api/v1 (e.g. /health) keep FastAPI's default behavior.
 """
@@ -14,12 +16,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-FLAT_ENVELOPE_PREFIXES = ("/api/v1/offers/", "/api/v1/calls/")
+FLAT_ENVELOPE_PATHS = {"/api/v1/offers/log", "/api/v1/calls/log"}
 
 
 def _bridge_envelope(request: Request, status_code: int, message: str) -> JSONResponse | None:
     path = request.url.path
-    if path.startswith(FLAT_ENVELOPE_PREFIXES):
+    if path in FLAT_ENVELOPE_PATHS:
         return JSONResponse(
             status_code=status_code,
             content={"status": status_code, "error": message},
