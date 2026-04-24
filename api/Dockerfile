@@ -21,4 +21,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn happyrobot_api.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "alembic upgrade head && python -m scripts.seed_loads && exec uvicorn happyrobot_api.main:app --host 0.0.0.0 --port 8000"]
