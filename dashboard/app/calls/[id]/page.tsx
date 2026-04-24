@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { getCallDetail } from "@/lib/api";
+import { getCallDetail, getPostedRatesFor } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +35,8 @@ export default async function CallDetailPage({ params }: { params: { id: string 
   }
 
   const { call, offers, transcript } = detail;
+  const postedRates = await getPostedRatesFor([call.load_id]);
+  const postedRate = call.load_id ? postedRates[call.load_id] ?? null : null;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 space-y-8">
@@ -79,10 +81,17 @@ export default async function CallDetailPage({ params }: { params: { id: string 
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Final Rate</CardTitle>
+            <CardTitle>Listed → Booked</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-semibold">{formatCurrency(call.final_rate)}</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm text-muted-foreground line-through">
+                {formatCurrency(postedRate)}
+              </span>
+              <span className="text-xl font-semibold">
+                {formatCurrency(call.final_rate)}
+              </span>
+            </div>
           </CardContent>
         </Card>
       </section>

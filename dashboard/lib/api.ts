@@ -71,3 +71,24 @@ export function getCalls(limit = 50, offset = 0) {
 export function getCallDetail(id: number) {
   return apiGet<CallDetail>(`/api/v1/calls/${id}`);
 }
+
+type LoadResponse = {
+  statusCode: number;
+  body: { load: { reference_number: string; posted_carrier_rate: string } };
+};
+
+/** Fetch posted_carrier_rate for each unique load_id. Returns a map: ref → rate. */
+export async function getPostedRatesFor(loadIds: (string | null)[]): Promise<Record<string, string>> {
+  const refs = Array.from(new Set(loadIds.filter((x): x is string => !!x)));
+  const results = await Promise.all(
+    refs.map(async (ref) => {
+      try {
+        const resp = await apiGet<LoadResponse>(`/api/v1/loads/${encodeURIComponent(ref)}`);
+        return [ref, resp.body.load.posted_carrier_rate] as const;
+      } catch {
+        return [ref, null] as const;
+      }
+    })
+  );
+  return Object.fromEntries(results.filter(([, v]) => v !== null) as [string, string][]);
+}

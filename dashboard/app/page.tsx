@@ -16,7 +16,8 @@ import {
   OutcomeBarChart,
   SentimentBarChart,
 } from "@/components/charts";
-import { getCalls, getMetricsSummary } from "@/lib/api";
+import { CsvExportButton } from "@/components/csv-export-button";
+import { getCalls, getMetricsSummary, getPostedRatesFor } from "@/lib/api";
 import { formatCurrency, formatPercent, formatRelativeTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,14 @@ export default async function DashboardPage() {
     getMetricsSummary(),
     getCalls(25, 0),
   ]);
+
+  // Look up each call's posted rate (from the Load) so we can show "Listed" vs "Booked"
+  const postedRates = await getPostedRatesFor(callsList.calls.map((c) => c.load_id));
+
+  const tableRows = callsList.calls.map((c) => ({
+    ...c,
+    posted_rate: c.load_id ? postedRates[c.load_id] ?? null : null,
+  }));
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-10 space-y-8">
@@ -123,8 +132,9 @@ export default async function DashboardPage() {
       {/* Recent calls table */}
       <section>
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle>Recent Calls</CardTitle>
+            <CsvExportButton rows={tableRows} />
           </CardHeader>
           <CardContent className="px-0">
             <Table>
@@ -137,18 +147,19 @@ export default async function DashboardPage() {
                   <TableHead>Outcome</TableHead>
                   <TableHead>Sentiment</TableHead>
                   <TableHead className="text-right">Rounds</TableHead>
-                  <TableHead className="text-right">Final Rate</TableHead>
+                  <TableHead className="text-right">Listed</TableHead>
+                  <TableHead className="text-right">Booked</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {callsList.calls.length === 0 ? (
+                {tableRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       No calls logged yet
                     </TableCell>
                   </TableRow>
                 ) : (
-                  callsList.calls.map((c) => (
+                  tableRows.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="text-muted-foreground text-xs">
                         {formatRelativeTime(c.created_at)}
@@ -179,6 +190,9 @@ export default async function DashboardPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">{c.rounds_used ?? "—"}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatCurrency(c.posted_rate)}
+                      </TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(c.final_rate)}
                       </TableCell>
