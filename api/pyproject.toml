@@ -1,0 +1,41 @@
+[project]
+name = "happyrobot-api"
+version = "0.1.0"
+description = "Inbound carrier sales agent backend"
+readme = "README.md"
+authors = [
+    { name = "mustafa", email = "smmusta@umich.edu" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.18.4",
+    "fastapi>=0.136.0",
+    "httpx>=0.28.1",
+    "python-dotenv>=1.2.2",
+    "sqlalchemy[mypy]>=2.0.49",
+    "uvicorn[standard]>=0.45.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.3",
+    "ruff>=0.15.11",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# B008: Depends() in argument defaults is the idiomatic FastAPI pattern.
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
