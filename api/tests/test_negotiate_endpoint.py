@@ -223,6 +223,43 @@ def test_400_on_non_positive_offer(client, db_session):
     assert "greater than zero" in body["body"]["error"]
 
 
+def test_stale_offers_do_not_count_toward_round(client, db_session):
+    """Offers older than ROUND_RESET_WINDOW (30 min) should not inflate the round counter.
+
+    Ensures that an evaluator testing the demo a day later starts at round 1, not
+    round N+1 inheriting our dev-time test offers.
+    """
+    _seed(db_session)
+    # Simulate 3 prior offers from a previous session (31 min ago)
+    stale_time = datetime(2026, 4, 22, 12, 0, 0)  # far in the past
+    for i, price in enumerate([Decimal("1100"), Decimal("1125"), Decimal("1150")], start=1):
+        offer = Offer(
+            mc_number="42",
+            load_reference_number="L1",
+            round_number=i,
+            carrier_offer=price,
+            agent_counter=price,
+            decision="counter",
+            notes=None,
+        )
+        db_session.add(offer)
+        db_session.flush()
+        # Backdate the row
+        offer.created_at = stale_time
+    db_session.commit()
+
+    # Now a fresh offer — should be treated as round 1, not round 4
+    r = client.post(
+        "/api/v1/negotiate",
+        headers=AUTH,
+        json={"load_id": "L1", "mc_number": "42", "carrier_offer": 1100.00},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["round_number"] == 1
+    assert body["rounds_remaining"] == 2
+
+
 def test_persists_offer_with_decision_and_counter(client, db_session):
     _seed(db_session)
     client.post(

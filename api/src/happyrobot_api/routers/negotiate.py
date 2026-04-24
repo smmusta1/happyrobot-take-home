@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -14,6 +15,15 @@ router = APIRouter(
     tags=["negotiate"],
     dependencies=[Depends(verify_api_key)],
 )
+
+# Offers older than this don't count toward the current call's round number.
+# Keeps round state scoped to a single conversation so a second carrier call
+# days later starts fresh at round 1 instead of inheriting old history.
+ROUND_RESET_WINDOW = timedelta(minutes=30)
+
+
+def _now() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def _rounds_remaining(round_number: int) -> int:
@@ -35,12 +45,15 @@ def negotiate(body: NegotiateRequest, db: Session = Depends(get_db)) -> Negotiat
             status_code=404, detail=f"Carrier with MC {body.mc_number} not found"
         )
 
+    window_start = _now() - ROUND_RESET_WINDOW
+
     existing = (
         db.query(Offer)
         .filter(
             Offer.mc_number == body.mc_number,
             Offer.load_reference_number == body.load_id,
             Offer.carrier_offer == body.carrier_offer,
+            Offer.created_at > window_start,
         )
         .first()
     )
@@ -58,6 +71,7 @@ def negotiate(body: NegotiateRequest, db: Session = Depends(get_db)) -> Negotiat
         .filter(
             Offer.mc_number == body.mc_number,
             Offer.load_reference_number == body.load_id,
+            Offer.created_at > window_start,
         )
         .order_by(Offer.id.asc())
         .all()
