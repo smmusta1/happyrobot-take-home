@@ -117,11 +117,15 @@ export default async function CallDetailPage({ params }: { params: { id: string 
                         {formatCurrency(o.carrier_offer)}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatCurrency(o.agent_counter)}
+                        {o.decision === "counter"
+                          ? formatCurrency(o.agent_counter)
+                          : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
                         <Badge variant={DECISION_BADGE[o.decision] ?? "secondary"}>
-                          {o.decision}
+                          {o.decision === "accept" && o.agent_counter
+                            ? `accepted @ ${formatCurrency(o.agent_counter)}`
+                            : o.decision}
                         </Badge>
                       </TableCell>
                     </TableRow>
