@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Local DB and env
+*.db
+*.db-journal
+.env
+.env.local
+
+# Dev-only
+tests/
+.python-version
+README.md
+
+# Git / editor
+.git/
+.gitignore
+.vscode/
+.idea/
